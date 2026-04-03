@@ -23,7 +23,7 @@ adminRouter.route("/nextUser").get(checklogin ,fetchQueueId ,nextUser)
 
 
 adminRouter.route("/addToQueue").post(checklogin ,fetchQueueId ,addToQueue)
-adminRouter.route("/deleteOne").post(checklogin ,fetchQueueId ,deleteOne)
+adminRouter.route("/deleteOne").delete(checklogin ,fetchQueueId ,deleteOne)
 
 
 
