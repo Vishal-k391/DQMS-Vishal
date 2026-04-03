@@ -1,20 +1,21 @@
-// Download the helper library from https://www.twilio.com/docs/node/install
 import twilio from "twilio";
 
-// Find your Account SID and Auth Token at twilio.com/console
-// and set the environment variables. See http://twil.io/secure
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const client = twilio(accountSid, authToken);
 
-async function createMessage() {
-  const message = await client.messages.create({
-    body: "This is the ship that made the Kessel Run in fourteen parsecs?",
-    from: "+919969041219",
-    to: "+15558675310",
+async function createMessage(toPhone, institutionName , department) {
+ 
+  try {
+    const message = await client.messages.create({
+    body: `Your up next in the queue , report ASAP . From ${department} , ${institutionName} `,
+    from: `+${process.env.FROM_PHONENUMBER}`,
+    to: `+91${toPhone}`,
   });
-
-  console.log(message.body);
+  return (message?.body);
+  } catch (error) {
+    return null
+  }
 }
 
-createMessage();
+export {createMessage}

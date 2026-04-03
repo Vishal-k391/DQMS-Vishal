@@ -6,19 +6,16 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {errorResponse} from "../utils/errorResponse.js"
 import { apiResponse } from "../utils/apiResponse.js";
 import mongoose from "mongoose";
+import {createMessage} from "../utils/sms.handler.js"
 
 
 const generateTokens = async function (id){
     //needd the refrence oft the object admin
 
     const admin = await Admindqms.findById(id);
-    console.log(admin)
     try {
-        console.log(process.env.ADMIN_SECRET_A)
         const accessToken =  await admin.generateAToken();
         const refreshToken =  await admin.generateRToken();
-        console.log(accessToken ,refreshToken)
-        console.log("check 1 ")
 
         // db changes 
          admin.refreshToken = refreshToken ;
@@ -60,7 +57,6 @@ const adminsignup = asyncHandler(async function (req ,res){
         institutionName:institutionName ,
         department : department
     });
-    console.log(user)
     if (!user._id){
         throw new errorResponse(501 ,"error in admin signup")
     }
@@ -123,7 +119,6 @@ const logoutadmin = asyncHandler(async function (req, res) {
             returnDocument: "after" 
         }
     ).select("-password");
-    console.log(admin)
     if (!admin){
         throw new errorResponse(501, "error in logout reftoken nulling")
     }
@@ -215,41 +210,39 @@ const addToQueue = asyncHandler(async function (req , res ){
             _id : new mongoose.Types.ObjectId(user._id)
         }
     },{
-        $lookup:{
-            from : "admindqms" , 
-            localField : "adminId" ,
-            foreignField : "_id",
-            as : "instituteDetails" ,
-            pipeline :[
-                {
-                    $project:{
-                        department : 1 ,
-                        institutionName : 1 , 
-                        _id : 0
-                    }
-                } ,
-            ]
-        }
-    } , {
-        $addFields:{
-            instituteDetails : {$arrayElemAt : ["$instituteDetails" , 0]}
-        }
-    },{
         $project :{
-            instituteDetails : 1 ,
             fullname_user :1 , 
             phone :1 , 
             uniqueid : 1 ,
             tokenNo :1  ,
             institutionName :1 ,
-            department : 1
-
+            department : 1, 
+            _id : 0
         }
     }])
 
+    // sending the sms on the phone number 
+    const newQueueLength = await User.countDocuments({
+        queueId : req.queueId 
+    })
+    
+    let messageSuffix = "no phone number"
+    if (newQueueLength===2){
+        /// call sms functiuon 
+        ///check phone number exists
+        if (pipelineResult[0]?.phone){
+            const responseMessage = await createMessage(pipelineResult[0].phone ,pipelineResult[0].institutionName , pipelineResult[0].department)
+            if (!responseMessage){
+                messageSuffix="error in sms sending"
+            }
+        }else{
+            messageSuffix = "no phone number or earlier operation"
+        }
+    }
+
 
    return res.status(201).json(
-        new apiResponse(201 , pipelineResult[0] , "new user successfully added to the queue")
+        new apiResponse(201 , pipelineResult[0] , `new user successfully added to the queue , ${messageSuffix}`)
     )
 
 
@@ -282,10 +275,25 @@ const nextUser = asyncHandler(async function (req, res) {
     if (!update){
         throw new errorResponse(501, "in nextUser in update Many ")
     }    
+    // sms sending
+    const smsReceiver = await User.findOne({
+        queueId : req.queueId ,
+        tokenNo : 2
+    })
     
-    
+    let messageSuffix = "no phone number"
+    if (smsReceiver && smsReceiver.phone){
+        //sending the message 
+        const responseMessage = await createMessage(smsReceiver.phone , smsReceiver.institutionName , smsReceiver.department)
+        if (!responseMessage) {
+            messageSuffix = "sms creation error"
+        } else {
+            messageSuffix = "sms created successfully"
+        }
+    }
+
     return res.status(200).json(
-        new apiResponse(200 , delFirstObj , "queue moved forward ")
+        new apiResponse(200 , delFirstObj , `queue moved forward ,${messageSuffix}` )
     )
     
 })
@@ -295,7 +303,7 @@ const getQueueStatus = asyncHandler(async function (req, res ) {
         throw new errorResponse(401 , "no user to added in queue..add some then next")
     } 
 
-    console.log("checking pipeline entry")
+    
     const pipelineResult = await Queue.aggregate([
         {
             $match:{
@@ -351,7 +359,7 @@ const deleteOne = asyncHandler(async function (req, res) {
 
     // validating if it exists or not 
     const existsOrNot = await User.findOne({uniqueid}); // returns null if doesnt exist
-    console.log(existsOrNot)
+    
     if (!existsOrNot){
         throw new errorResponse(401 , "this user doesnt exist in the db")
     }
@@ -360,6 +368,7 @@ const deleteOne = asyncHandler(async function (req, res) {
     if (!deletedUser){
         throw new errorResponse(501, "error in deleteOne controller in deletedUser call")
     }
+
     const updateUsers = await User.updateMany({
         queueId  : req.queueId ,
         tokenNo : {$gt : deletedUser.tokenNo}
@@ -369,15 +378,33 @@ const deleteOne = asyncHandler(async function (req, res) {
     if (!updateUsers){
          throw new errorResponse(501, "error in deleteOne controller in updateUsers call")
     }
+
+    // sms functionality 
+    let messageSuffix = "no phone number"
+    if (deletedUser?.tokenNo === 2 ){
+        // get the new tokenNo 2 user 
+        const smsReceiver = await User.findOne({
+            uniqueId : req.uniqueId ,
+            tokenNo : 2
+        })
+        if (smsReceiver && smsReceiver.phone){
+            const responseMessage = await createMessage(smsReceiver.phone , smsReceiver.institutionName , smsReceiver.department)
+            if (responseMessage){
+                messageSuffix = "sms sent"
+            }else {
+                messageSuffix = "error in message sending "
+            }
+        }
+        
+    }
+
     return res.status(200).json(
-        new apiResponse(200 , deletedUser, "user successfully nuked")
+        new apiResponse(200 , deletedUser, `user successfully nuked , ${messageSuffix}`)
     )
 
 })
 
-const bulkdelete = asyncHandler(async function (req ,res) {
-    
-})
+
 
 export {adminsignup ,
      loginadmin , 

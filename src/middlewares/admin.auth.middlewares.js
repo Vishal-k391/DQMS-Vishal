@@ -11,7 +11,6 @@ const checklogin = asyncHandler(async function (req ,_,next) {
     // req, res for creating obj in req 
     const cookieToken = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer " , "") ;
     if (!cookieToken){
-        console.log(cookieToken)
         throw new errorResponse(401, "token not found, not loged in ")
     }
     // verify of token by jwt.verify

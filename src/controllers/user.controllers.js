@@ -17,21 +17,19 @@ const userGetQueueStatus = asyncHandler(async function (req , res) {
         throw new errorResponse(401, "uniqueid , institutionName ,department isnt added")
     }
 
-    uniqueid = String(uniqueid).toLowerCase()
-    // checking if four digit 
-    if (!uniqueid){
-        throw new errorResponse(401 , "unique id isnt added")
+    const user_details = [uniqueid , institutionName ,department].map((val)=>{
+        return String(val).toLowerCase().trim();
+    })   // checking if four digit 
+    if (!(uniqueid && uniqueid.length === 4)){
+        throw new errorResponse(401 , "unique fetch isssue ..enter proper unique id ")
     }
-    if (uniqueid.length !==4){
-        throw new errorResponse(401 , "not of the right length uniqueid")
-    }
-
+     
 
     const emptyCheckPipeline = await User.aggregate([{
         $match:{
-            uniqueid : uniqueid ,
-            institutionName  :institutionName ,
-            department :department
+            uniqueid : user_details[0] ,
+            institutionName  :user_details[1] ,
+            department :user_details[2]
         }
     },{
         $count : "queueLength"
@@ -41,18 +39,18 @@ const userGetQueueStatus = asyncHandler(async function (req , res) {
     }
     
     else {
-        const user = await User.findOne({
-            uniqueid : uniqueid ,
-            institutionName  :institutionName ,
-            department :department
-        }).select("-_id -adminId -queueId")
+        let user = await User.findOne({
+            uniqueid : user_details[0] ,
+            institutionName  :user_details[1] ,
+            department :user_details[2]
+        }).select("-_id -adminId -queueId ")
         if (!user){
             throw new errorResponse(501 , "in userGetQueueStatus controller in user.controller while fetching user")
         }
-
+        
         return res
         .status(200)
-        .json(new apiResponse(200 , user , "here's the current user status "))
+        .json(new apiResponse(200 , user  , "here's the current user status "))
     }
 
 
