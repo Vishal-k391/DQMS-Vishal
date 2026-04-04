@@ -5,7 +5,8 @@ import cors from "cors"
 const app = express();
 
 const options_c= {
-    options : process.env.CORS_OPTIONS ,
+    origin : `${process.env.CORS_OPTIONS}` ,
+    credentials  :true
 }
 app.use(express.json({
     limit :"1kb"
@@ -23,8 +24,6 @@ app.use(["/api/v1/admin"] , adminRouter)
 import { userRouter } from "./routes/user.routes.js";
 
 app.use(["/api/v1/user"] , userRouter)
-
-
 
 export{ app }
 

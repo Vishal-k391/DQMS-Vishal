@@ -302,7 +302,7 @@ const getQueueStatus = asyncHandler(async function (req, res ) {
     if (req.queue_length <= 0 ){
         throw new errorResponse(401 , "no user to added in queue..add some then next")
     } 
-
+    console.log("hitting thr backend")
     
     const pipelineResult = await Queue.aggregate([
         {
@@ -339,7 +339,7 @@ const getQueueStatus = asyncHandler(async function (req, res ) {
             }
         }
     ]);
-    if (!pipelineResult.length){
+    if (!pipelineResult){
         throw new errorResponse(501, "in getQueueStatus in pipelineResult")
     }
     return res.status(200).json(new apiResponse(200 , pipelineResult[0] , "the operation was successful. Queue status returned"))
