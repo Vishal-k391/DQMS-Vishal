@@ -5,12 +5,16 @@ import cors from "cors"
 const app = express();
 
 const options_c= {
-    origin : `${process.env.CORS_OPTIONS}` ,
-    credentials  :true
+    origin : ["http://localhost:5500" , "http://127.0.0.1:5500" , ],
+    credentials  :true ,
+    // methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    // allowedHeaders: ["Content-Type", "Authorization"]
 }
+console.log(process.env.CORS_OPTIONS)
 app.use(express.json({
     limit :"1kb"
 }))
+// app.use(cors(options_c))
 app.use(cors(options_c))
 app.use(express.urlencoded({extended : true}));
 app.use(cookieParser())

@@ -98,8 +98,8 @@ const loginadmin = asyncHandler(async function(req, res){
      
     const cookieopt = {
         httpOnly : true ,
-        secure : true
-
+        secure : true ,
+        sameSite: "none"
     }
     return res
     .status(200)
@@ -125,8 +125,8 @@ const logoutadmin = asyncHandler(async function (req, res) {
     // res with clear cookioe 
     const cookieOpt = {
         httpOnly : true ,
-        secure : true
-
+        secure : true,
+        sameSite: "none"
     }
    return res.status(200)
     .clearCookie("accessToken" , cookieOpt)
